@@ -80,4 +80,4 @@ stages:
               appName: '$(APP_SERVICE_NAME)'
               package: '$(Pipeline.Workspace)/drop/$(Build.BuildId).zip'
               runtimeStack: 'PYTHON|3.11'
-              startUpCommand: 'startup.sh'
+              startUpCommand: 'gunicorn backend.main:app --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000 --workers 2 --timeout 120'
