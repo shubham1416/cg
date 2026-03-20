@@ -1,5 +1,4 @@
-# Docker
-# Build a Docker image
+# Azure Pipeline — Build, Push to ACR, Deploy to App Service
 # https://docs.microsoft.com/azure/devops/pipelines/languages/docker
 
 trigger:
@@ -10,20 +9,52 @@ resources:
 
 variables:
   tag: '$(Build.BuildId)'
+  # ── Configure these in Azure DevOps Pipeline Variables (or variable groups) ──
+  # ACR_NAME:            e.g. cgregistry
+  # AZURE_SUBSCRIPTION:  e.g. MyAzureServiceConnection
+  # APP_SERVICE_NAME:    e.g. compliance-game-app
+  # RESOURCE_GROUP:      e.g. cg-rg
 
 stages:
+
+# ── Stage 1: Build & Push Docker Image to ACR ────────────
 - stage: Build
-  displayName: Build image
+  displayName: Build & Push to ACR
   jobs:
-  - job: Build
-    displayName: Build
+  - job: BuildAndPush
+    displayName: Build and Push
     pool:
       vmImage: ubuntu-latest
     steps:
     - task: Docker@2
-      displayName: Build an image
+      displayName: Build and Push image
       inputs:
-        command: build
+        containerRegistry: '$(AZURE_SUBSCRIPTION)'
+        repository: 'compliance-game'
+        command: buildAndPush
         dockerfile: '**/Dockerfile'
         tags: |
           $(tag)
+          latest
+
+# ── Stage 2: Deploy to Azure App Service ─────────────────
+- stage: Deploy
+  displayName: Deploy to App Service
+  dependsOn: Build
+  condition: succeeded()
+  jobs:
+  - deployment: DeployWeb
+    displayName: Deploy to Azure Web App
+    pool:
+      vmImage: ubuntu-latest
+    environment: 'production'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - task: AzureWebAppContainer@1
+            displayName: Deploy Container to App Service
+            inputs:
+              azureSubscription: '$(AZURE_SUBSCRIPTION)'
+              appName: '$(APP_SERVICE_NAME)'
+              containers: '$(ACR_NAME).azurecr.io/compliance-game:$(tag)'

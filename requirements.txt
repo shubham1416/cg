@@ -9,3 +9,5 @@ reportlab
 pydantic
 aiofiles
 openpyxl
+google-generativeai
+gunicorn
