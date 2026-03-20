@@ -892,6 +892,13 @@ def dashboard_summary(db: Session = Depends(get_db)) -> dict:
     }
 
 
+# ── Health check (Azure warmup probe hits this) ──────────
+@app.get("/health")
+def health_check():
+    """Health endpoint for Azure App Service warmup probe."""
+    return {"status": "healthy"}
+
+
 # ── Root routes ───────────────────────────────────────────
 
 # ── Mount static file directories ─────────────────────────
@@ -899,6 +906,8 @@ def dashboard_summary(db: Session = Depends(get_db)) -> dict:
 
 if os.path.isdir(_ADMIN_DIR):
     app.mount("/admin", StaticFiles(directory=_ADMIN_DIR, html=True), name="admin")
+
+
 
 @app.get("/api/ai/adaptive")
 def ai_adaptive(user: str, domain: str = "cyber", db: Session = Depends(get_db)) -> dict:
@@ -985,3 +994,8 @@ def ai_conversation(req: ConversationRequest, db: Session = Depends(get_db)) -> 
         player_stats=player_stats,
     )
     return {"reply": reply}
+
+
+# ── Mount frontend at root — must be LAST (catch-all) ────
+if os.path.isdir(_FRONTEND_DIR):
+    app.mount("/", StaticFiles(directory=_FRONTEND_DIR, html=True), name="frontend")

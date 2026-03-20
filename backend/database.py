@@ -11,7 +11,12 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import sessionmaker, declarative_base
 
-DATABASE_URL = os.environ.get('DATABASE_URL') or 'sqlite:///./data.db'
+# On Azure, only /home is writable and persistent
+_default_db = 'sqlite:///./data.db'
+if os.path.isdir('/home'):
+    _default_db = 'sqlite:////home/data.db'
+
+DATABASE_URL = os.environ.get('DATABASE_URL') or _default_db
 
 # Handle sqlite-specific args
 connect_args = {}

@@ -1,5 +1,5 @@
-# Azure Pipeline — Build, Push to ACR, Deploy to App Service
-# https://docs.microsoft.com/azure/devops/pipelines/languages/docker
+# Azure Pipeline — Build & Deploy to Azure App Service (Direct Code Deployment)
+# Uses Python runtime on Azure App Service (no Docker required)
 
 trigger:
 - main
@@ -9,33 +9,48 @@ resources:
 
 variables:
   tag: '$(Build.BuildId)'
-  # ── Configure these in Azure DevOps Pipeline Variables (or variable groups) ──
-  # ACR_NAME:            e.g. cgregistry
-  # AZURE_SUBSCRIPTION:  e.g. MyAzureServiceConnection
-  # APP_SERVICE_NAME:    e.g. compliance-game-app
-  # RESOURCE_GROUP:      e.g. cg-rg
+  pythonVersion: '3.11'
+  # ── Configure these in Azure DevOps Pipeline Variables ──
+  # AZURE_SUBSCRIPTION:  Your Azure service connection name
+  # APP_SERVICE_NAME:    Your App Service name (e.g. compliance-game-app)
 
 stages:
 
-# ── Stage 1: Build & Push Docker Image to ACR ────────────
+# ── Stage 1: Build ───────────────────────────────────────
 - stage: Build
-  displayName: Build & Push to ACR
+  displayName: Build Application
   jobs:
-  - job: BuildAndPush
-    displayName: Build and Push
+  - job: Build
+    displayName: Build
     pool:
       vmImage: ubuntu-latest
     steps:
-    - task: Docker@2
-      displayName: Build and Push image
+    - task: UsePythonVersion@0
+      displayName: Set Python $(pythonVersion)
       inputs:
-        containerRegistry: '$(AZURE_SUBSCRIPTION)'
-        repository: 'compliance-game'
-        command: buildAndPush
-        dockerfile: '**/Dockerfile'
-        tags: |
-          $(tag)
-          latest
+        versionSpec: '$(pythonVersion)'
+
+    - script: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+      displayName: Install Python dependencies
+
+    - script: |
+        npm install --production
+      displayName: Install Node.js dependencies (Phaser)
+
+    - task: ArchiveFiles@2
+      displayName: Archive files for deployment
+      inputs:
+        rootFolderOrFile: '$(System.DefaultWorkingDirectory)'
+        includeRootFolder: false
+        archiveType: 'zip'
+        archiveFile: '$(Build.ArtifactStagingDirectory)/$(Build.BuildId).zip'
+        replaceExistingArchive: true
+
+    - publish: '$(Build.ArtifactStagingDirectory)/$(Build.BuildId).zip'
+      displayName: Publish artifact
+      artifact: drop
 
 # ── Stage 2: Deploy to Azure App Service ─────────────────
 - stage: Deploy
@@ -52,13 +67,17 @@ stages:
       runOnce:
         deploy:
           steps:
-          - task: AzureRmWebAppDeployment@4
-            displayName: Deploy Container to App Service
+          - task: UsePythonVersion@0
+            displayName: Set Python $(pythonVersion)
             inputs:
-              ConnectionType: 'AzureRM'
+              versionSpec: '$(pythonVersion)'
+
+          - task: AzureWebApp@1
+            displayName: Deploy to App Service
+            inputs:
               azureSubscription: '$(AZURE_SUBSCRIPTION)'
-              appType: 'webAppContainer'
-              WebAppName: '$(APP_SERVICE_NAME)'
-              DockerNamespace: '$(ACR_NAME).azurecr.io'
-              DockerRepository: 'compliance-game'
-              DockerImageTag: '$(tag)'
+              appType: 'webAppLinux'
+              appName: '$(APP_SERVICE_NAME)'
+              package: '$(Pipeline.Workspace)/drop/$(Build.BuildId).zip'
+              runtimeStack: 'PYTHON|3.11'
+              startUpCommand: 'gunicorn application:app --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT --workers 2 --timeout 120'
