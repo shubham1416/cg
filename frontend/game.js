@@ -17,7 +17,7 @@ const NPC_NAMES = [
 ];
 const OPTION_LETTERS = ['A', 'B', 'C', 'D'];
 
-const API_BASE = 'http://localhost:8000';
+const API_BASE = '';
 
 const MAX_LEVEL = 3;
 const SCENARIOS_PER_LEVEL = 3;

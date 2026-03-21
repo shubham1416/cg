@@ -6,12 +6,9 @@ const API = '/api';
 let _parsedScenarios = [];
 let _editingId = null;
 
-// ── Auto-detect backend URL (serve from same origin or localhost:8000)
+// ── API URL helper (always use relative paths for portability)
 function apiUrl(path) {
-    // If we're on port 8000, we're likely served by the backend directly
-    if (window.location.port === '8000') return path;
-    // Otherwise, assume backend is at localhost:8000 (standard dev setup)
-    return `http://localhost:8000${path}`;
+    return path;
 }
 
 /* ── Login ─────────────────────────────────────────────── */
@@ -42,7 +39,7 @@ async function doLogin() {
 /* ── Logout ─────────────────────────────────────────────── */
 document.getElementById('logoutBtn').addEventListener('click', () => {
     // Redirect to the game screen
-    window.location.href = 'http://localhost:8080/';
+    window.location.href = '/';
 });
 
 /* ── Navigation ────────────────────────────────────────── */
@@ -127,10 +124,10 @@ function setupChartInteractivity() {
         const y = e.clientY - rect.top;
         const cx = domainC.width / 2;
         const cy = domainC.height / 2;
-        
+
         const dx = x - cx;
         const dy = y - cy;
-        const dist = Math.sqrt(dx*dx + dy*dy);
+        const dist = Math.sqrt(dx * dx + dy * dy);
         const r = Math.min(cx, cy) - 30;
 
         if (dist > r * 0.5 && dist < r) {
@@ -147,7 +144,7 @@ function setupChartInteractivity() {
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
 
-        const match = _levelMetadata.find(m => 
+        const match = _levelMetadata.find(m =>
             x >= m.x && x <= m.x + m.w && y >= m.y && y <= m.y + m.h
         );
         if (match) showBreakdown('level', match.key);
@@ -162,13 +159,13 @@ async function showBreakdown(type, value) {
     container.classList.remove('hidden');
     title.textContent = `${type === 'domain' ? 'Domain' : 'Level'} Breakdown: ${value.toUpperCase()}`;
     content.innerHTML = `<div style="padding:20px"><span class="spinner"></span> Fetching details...</div>`;
-    
+
     try {
         if (type === 'domain') {
             const resp = await fetch(apiUrl('/api/leaderboard'));
             const data = await resp.json();
             const players = data.leaders.filter(p => p.domain.toLowerCase() === value.toLowerCase());
-            
+
             if (!players.length) {
                 content.innerHTML = `<p style="color:var(--text-dim)">No player data for this domain yet.</p>`;
                 return;
@@ -194,7 +191,7 @@ async function showBreakdown(type, value) {
                 _allScenarios = data.scenarios;
             }
             const scenarios = _allScenarios.filter(s => String(s.level) === String(value));
-            
+
             content.innerHTML = `
                 <div class="breakdown-grid">
                     ${scenarios.map(s => `
@@ -208,7 +205,7 @@ async function showBreakdown(type, value) {
                 </div>
             `;
         }
-        
+
         container.scrollIntoView({ behavior: 'smooth', block: 'start' });
     } catch (e) {
         content.innerHTML = `<div style="color:var(--danger)">Failed to load breakdown.</div>`;
@@ -382,16 +379,16 @@ fileInput.addEventListener('change', () => { if (fileInput.files[0]) handleFile(
 function handleFile(file) {
     const result = document.getElementById('uploadResult');
     const preview = document.getElementById('uploadPreview');
-    
+
     result.className = '';
     result.classList.remove('hidden');
-    result.innerHTML = isCSV 
+    result.innerHTML = isCSV
         ? `<span class="spinner"></span> ⏳ <strong>Processing CSV data...</strong>`
         : `<span class="spinner"></span> ⏳ <strong>AI is analyzing "${file.name}"...</strong> This may take a moment.`;
-    
+
     // Auto-detect type
     const isCSV = file.name.toLowerCase().endsWith('.csv');
-    
+
     const reader = new FileReader();
     reader.onload = e => {
         const text = e.target.result;
@@ -403,7 +400,7 @@ function handleFile(file) {
             _parsedScenarios = null;
             showDocPreview(file.name, text);
         }
-        
+
         // TRIGGER UPLOAD AUTOMATICALLY
         doUpload(file);
     };
@@ -415,7 +412,7 @@ function showDocPreview(filename, text) {
     const preview = document.getElementById('uploadPreview');
     const body = document.getElementById('previewBody');
     document.getElementById('previewCount').textContent = `Document: ${filename}`;
-    
+
     body.innerHTML = `
         <tr>
             <td colspan="5" style="padding: 24px; background: rgba(0,0,0,0.2); border-radius: 8px;">

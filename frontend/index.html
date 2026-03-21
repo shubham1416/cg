@@ -2450,7 +2450,7 @@
   <!-- Login Overlay -->
   <div id="loginOverlay">
     <div class="admin-login-link">
-      <a href="http://localhost:8000/admin/" target="_blank">
+      <a href="/admin/" target="_blank">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width: 16px; height: 16px;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
         Admin Portal
       </a>
@@ -2778,7 +2778,7 @@
     /* ── Leaderboard fetch ────────────────────────────── */
     async function loadLeaderboard() {
       try {
-        const resp = await fetch('http://localhost:8000/api/leaderboard');
+        const resp = await fetch('/api/leaderboard');
         if (!resp.ok) { console.warn('Leaderboard fetch failed:', resp.status); return; }
         const data = await resp.json();
         console.log('Leaderboard data:', data);

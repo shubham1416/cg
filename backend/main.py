@@ -53,10 +53,13 @@ app.add_middleware(
 )
 
 
-# ── Static file paths (relative to project root, 2 dirs up from backend/) ──
-_ROOT = os.path.join(os.path.dirname(__file__), "..")
+# ── Static file paths (relative to project root, 1 dir up from backend/) ──
+_ROOT = os.path.realpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 _ADMIN_DIR = os.path.join(_ROOT, "admin-dashboard")
 _FRONTEND_DIR = os.path.join(_ROOT, "frontend")
+logger.info("Project root: %s", _ROOT)
+logger.info("Admin dir exists: %s (%s)", os.path.isdir(_ADMIN_DIR), _ADMIN_DIR)
+logger.info("Frontend dir exists: %s (%s)", os.path.isdir(_FRONTEND_DIR), _FRONTEND_DIR)
 
 
 # ── Startup event — initialize DB ─────────────────────────
